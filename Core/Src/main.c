@@ -22,23 +22,24 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "BMPXX80.h"
+#include "TM1637.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 typedef float float32_t;
 
-typedef struct{
-float32_t Kp;
-float32_t Ki;
-float32_t Kd;
-float32_t dt;
+typedef struct {
+	float32_t Kp;
+	float32_t Ki;
+	float32_t Kd;
+	float32_t dt;
 } pid_parameters_t;
 
-typedef struct{
-pid_parameters_t p;
-float32_t previous_error, previous_integral;
-}pid_t;
+typedef struct {
+	pid_parameters_t p;
+	float32_t previous_error, previous_integral;
+} pid_t;
 
 /* USER CODE END PTD */
 
@@ -66,8 +67,8 @@ float temp = 0;
 float temp_zad = 28;
 float pwm_duty_f=0;
 int32_t pres;
-pid_t pid1 = {.p.Kp=3, .p.Ki=0.01, .p.Kd=0.001,
-		.p.dt=1.0, .previous_error=0, .previous_integral=0};
+pid_t pid1 = { .p.Kp = 3, .p.Ki = 0.01, .p.Kd = 0.001, .p.dt = 1.0,
+		.previous_error = 0, .previous_integral = 0 };
 uint16_t pwm_duty=0;
 /* USER CODE END PV */
 
@@ -84,26 +85,26 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float calculate_discrete_pid(pid_t* pid, float32_t setpoint, float32_t measured){
+float calculate_discrete_pid(pid_t *pid, float32_t setpoint, float32_t measured) {
 
-float32_t u=0, P, I, D, error, integral, derivative;
-error = setpoint-measured;
+	float32_t u = 0, P, I, D, error, integral, derivative;
+	error = setpoint - measured;
 //proportional part
 
-P = pid->p.Kp * error;
+	P = pid->p.Kp * error;
 //integral part
 
-integral = pid->previous_integral + (error+pid->previous_error) ; //numerical integrator without anti-windup
-pid->previous_integral = integral;
-I = pid->p.Ki*integral*(pid->p.dt/2.0);
+	integral = pid->previous_integral + (error + pid->previous_error); //numerical integrator without anti-windup
+	pid->previous_integral = integral;
+	I = pid->p.Ki * integral * (pid->p.dt / 2.0);
 
 //derivative part
-derivative = (error - pid->previous_error)/pid->p.dt; //numerical derivative without filter
-pid->previous_error = error;
-D = pid->p.Kd*derivative;
+	derivative = (error - pid->previous_error) / pid->p.dt; //numerical derivative without filter
+	pid->previous_error = error;
+	D = pid->p.Kd * derivative;
 //sum of all parts
-u = P  + I + D; //without saturation
-return u;
+	u = P + I + D; //without saturation
+	return u;
 }
 /* USER CODE END 0 */
 
@@ -142,6 +143,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
   BMP280_Init(&hi2c2, BMP280_TEMPERATURE_16BIT, BMP280_STANDARD, BMP280_FORCEDMODE);
+  TM1637_SetBrightness(7);
 
 
   /* USER CODE END 2 */
@@ -154,9 +156,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-  //temperature = BMP280_ReadTemperature();
-  //HAL_Delay(200);
+
 	  BMP280_ReadTemperatureAndPressure(&temp, &pres);
+	  TM1637_DisplayDecimal(temp*100, 1);
 	  pwm_duty_f=(999.0*calculate_discrete_pid(&pid1,temp_zad,temp));
 	  if (pwm_duty_f<0) {
 		  pwm_duty=0;
@@ -403,6 +405,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, DATA_Pin|CLK_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -428,6 +433,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DATA_Pin CLK_Pin */
+  GPIO_InitStruct.Pin = DATA_Pin|CLK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
