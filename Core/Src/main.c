@@ -67,7 +67,7 @@ float temp = 0;
 float temp_zad = 28;
 float pwm_duty_f=0;
 int32_t pres;
-pid_t pid1 = { .p.Kp = 3, .p.Ki = 0.01, .p.Kd = 0.001, .p.dt = 1.0,
+pid_t pid1 = { .p.Kp = 2.8, .p.Ki = 0.005, .p.Kd = 4.2, .p.dt = 1.0,
 		.previous_error = 0, .previous_integral = 0 };
 uint16_t pwm_duty=0;
 /* USER CODE END PV */
